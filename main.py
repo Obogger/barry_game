@@ -69,6 +69,15 @@ class Particle():
         self.hitbox = pygame.rect.Rect(self.pos.x - self.size.x / 2+ SCREEN_WIDTH/2,self.pos.y- self.size.y / 2+SCREEN_HEIGHT/2,self.size.x,self.size.y)
         self.image = pygame.transform.scale(pygame.image.load("sprites/particle/bulbert.png"), (self.size.x,self.size.y))
 
+class Item():
+    def __init__(self) -> None:
+        self.pos = Vec2()
+        self.velocity = Vec2()
+        self.size = Vec2()
+        self.size.x = 20
+        self.size.y = 20
+        self.hitbox = pygame.rect.Rect(self.pos.x - self.size.x / 2+ SCREEN_WIDTH/2,self.pos.y- self.size.y / 2+SCREEN_HEIGHT/2,self.size.x,self.size.y)
+        self.image = pygame.transform.scale(pygame.image.load("sprites/items/barry_gun.png"), (self.size.x,self.size.y))
 
 def main():
     pygame.init()
@@ -84,11 +93,13 @@ def main():
 
     last_dt = 0
 
-    map_data = load_map()
+    map_data, item_data = load_map()
 
     camera = Camera()
+
     entity_list = []
     bullet_list = []
+    item_list = []
     while running:
         start_time = time.time()
         event_list = pygame.event.get()
@@ -154,6 +165,9 @@ def main():
 
         dt = end_time - start_time
         last_dt = dt
+
+def render_items(screen, item_list):
+
 
 def render_bullets(screen, bullet_list, camera):
     for entity in bullet_list:
@@ -238,14 +252,29 @@ def load_map():
     map_file.close()
 
     map_data = []
+    item_data = []
+    item_list = []
 
+    item_iteration = False
     for line in map_lines:
-        split_line = line.split()
-        texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
-        map_data.append([texture_name,x,y])
+        if line == "ITEMS\n":
+            item_iteration = True
+        elif item_iteration:
+            split_line = line.split()
+            texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
+            item_data.append([texture_name,x,y])
+        else:
+            split_line = line.split()
+            texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
+            map_data.append([texture_name,x,y])
+    
+    for item_d in item_data:
+        item = Item()
+        item.image = tl.item_textures([item[0]])
+        item_list.append(item)
 
     print(map_data)
-    return map_data
+    return map_data, item_data
     
 def render_data(screen, map_data, camera):
     for line in map_data:
