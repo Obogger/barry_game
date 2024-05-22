@@ -8,8 +8,8 @@ import copy
 
 from global_classes import Vec2
 
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
+SCREEN_WIDTH = 1080
+SCREEN_HEIGHT = 720
 
 class Player():
     health = 100
@@ -35,14 +35,14 @@ class Enemy():
         self.size.x = 100
         self.size.y = 100
         self.hitbox = pygame.rect.Rect(self.pos.x - self.size.x / 2+ SCREEN_WIDTH/2,self.pos.y- self.size.y / 2+SCREEN_HEIGHT/2,self.size.x,self.size.y)
-        self.image = pygame.transform.scale(pygame.image.load("sprites/characters/jared_of_norwegian_descent.png"), (self.size.x,self.size.y))
+        self.image = pygame.transform.scale(pygame.image.load("sprites/characters/larry.png"), (self.size.x,self.size.y))
 
     
     def change_velocity(self, player):
         dt_y = self.pos.y - player.pos.y
         dt_x = self.pos.x - player.pos.x
         if dt_y != 0 or dt_x != 0:
-            if math.sqrt(abs(abs(dt_y**2) + abs(dt_x**2))) < 100:
+            if math.sqrt(abs(abs(dt_y**2) + abs(dt_x**2))) < 5:
                 self.velocity.x = 0
                 self.velocity.y = 0
  
@@ -90,6 +90,7 @@ def main():
 
     entity_list = []
     bullet_list = []
+    object_list = []
 
     is_inventory_open = False
     start_invetory_pos = None
@@ -127,7 +128,7 @@ def main():
                         end_invetory_pos = None
                     else:
                         print("use_item")
-                        bullet_list.append(use_item(player, pygame.mouse.get_pos())) if use_item(player, pygame.mouse.get_pos()) != None else None
+                        use_item(player, pygame.mouse.get_pos(), bullet_list)
             elif event.type ==pygame.MOUSEBUTTONUP:
                 if event.button == pygame.BUTTON_LEFT:         
                     if is_inventory_open:
@@ -166,8 +167,8 @@ def main():
 
 
 
-
-        dt_surface = standard_font.render("{:.2f} FPS".format(1 / last_dt), True, color=(255,255,255))
+        fps = 1 / last_dt if last_dt else 99999999
+        dt_surface = standard_font.render("{:.2f} FPS".format(fps), True, color=(255,255,255))
         screen.blit(dt_surface, (0,0))
 
         dt_surface = standard_font.render("Health {}".format(player.health), True, color=(255,255,255))
@@ -295,31 +296,49 @@ def update_bullets(bullet_list:list[Particle], camera, entity_list: list[Enemy],
                 break
 
 
-def use_item(player:Player, mouse_pos):
-     
+def use_item(player:Player, mouse_pos, particle_list):
     if player.primary_item:
         item = player.primary_item
     else:
         return
     print(player.inventory)
     if item.is_equipable:
-        particle = Particle()
-        particle.pos.x = player.pos.x - particle.size.x / 2 + player.hitbox.width / 2
-        particle.pos.y = player.pos.y - particle.size.y / 2 + player.hitbox.height / 2
+        print(item.id)
+        if item.id == "gourd":
+            print("dsd")
+            degree = 0
+            while True:
+                if degree >=360:
+                    break
+                    
+                particle = Particle()
+                particle.pos.x = player.pos.x - particle.size.x / 2 + player.hitbox.width / 2
+                particle.pos.y = player.pos.y - particle.size.y / 2 + player.hitbox.height / 2
 
-        dt_y = SCREEN_HEIGHT/2 - mouse_pos[1]
-        dt_x = SCREEN_WIDTH/2 - mouse_pos[0]
-        if dt_y != 0 or dt_x != 0:
-            degrees_to_mouse = math.atan2(dt_y, dt_x) + math.radians(random.randint(-10,10))
-            speed_y = math.sin(degrees_to_mouse)* 1000
-            speed_x = math.cos(degrees_to_mouse)* 1000
-            particle.velocity.x = -speed_x
-            particle.velocity.y = -speed_y
+                speed_y = math.sin(degree)* 1000
+                speed_x = math.cos(degree)* 1000
+                particle.velocity.x = -speed_x
+                particle.velocity.y = -speed_y
+                degree += 10
+                particle_list.append(particle)                
         else:
-            particle.velocity.x = 0
-            particle.velocity.y = 0
-        return particle
-    elif item.is_consumable:
+            particle = Particle()
+            particle.pos.x = player.pos.x - particle.size.x / 2 + player.hitbox.width / 2
+            particle.pos.y = player.pos.y - particle.size.y / 2 + player.hitbox.height / 2
+
+            dt_y = SCREEN_HEIGHT/2 - mouse_pos[1]
+            dt_x = SCREEN_WIDTH/2 - mouse_pos[0]
+            if dt_y != 0 or dt_x != 0:
+                degrees_to_mouse = math.atan2(dt_y, dt_x) + math.radians(random.randint(-10,10))
+                speed_y = math.sin(degrees_to_mouse)* 1000
+                speed_x = math.cos(degrees_to_mouse)* 1000
+                particle.velocity.x = -speed_x
+                particle.velocity.y = -speed_y
+            else:
+                particle.velocity.x = 0
+                particle.velocity.y = 0
+            particle_list.append(particle)                
+    if item.is_consumable:
         player.primary_item = None
         heal(player,item.heal_amount)
 
@@ -375,15 +394,23 @@ def load_map():
     map_data = []
     item_data = []
     item_list = []
+    object_data = []
 
     item_iteration = False
+    object_iteration = False
     for line in map_lines:
         if line == "ITEMS\n":
             item_iteration = True
+        elif line == "OBJECTS\n":
+            object_iteration = True
         elif item_iteration:
             split_line = line.split()
             texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
             item_data.append([texture_name,x,y])
+        elif object_iteration:
+            split_line = line.split()
+            texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
+            object_data.append([texture_name,x,y])
         else:
             split_line = line.split()
             texture_name, x, y = split_line[0], int(split_line[1]), int(split_line[2])
@@ -392,8 +419,10 @@ def load_map():
     for item_d in item_data:
         item = copy.deepcopy(item_library.item_list[item_d[0]])
         item.pos.x, item.pos.y = int(item_d[1]), int(item_d[2])
-
         item_list.append(item)
+
+    for object_d in object_data:
+        item = copy.deepcopy(item_library.item_list[item_d[0]])
 
     print(item_data)
     return map_data, item_list
